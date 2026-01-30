@@ -26,6 +26,16 @@
                         "display": ["Lexend", "sans-serif"]
                     },
                     borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+                    animation: {
+                        'scroll': 'scroll 40s linear infinite',
+                        'pulse-slow': 'pulse-slow 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        'pulse-slow': {
+                            '0%, 100%': { transform: 'scale(1)', boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)' },
+                            '50%': { transform: 'scale(1.02)', boxShadow: '8px 8px 0px 0px rgba(0,0,0,1)' },
+                        }
+                    }
                 },
             },
         }
@@ -45,28 +55,50 @@
             @apply bg-black text-white font-black uppercase py-3 px-6 border-2 border-black hover:bg-zinc-800 transition-all tracking-widest flex items-center justify-center gap-2;
         }
         .bee-input {
-            @apply w-full bg-white border-2 border-black rounded-none text-black font-bold h-12 px-4 focus:ring-0 focus:border-black outline-none;
+            @apply w-full bg-white border-2 border-black rounded-none text-black font-bold h-12 px-3 focus:ring-0 focus:border-black outline-none;
         }
-        .sponsor-scroll {
-          animation: scroll 40s linear infinite;
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        input[type="date"].bee-input, 
+        input[type="time"].bee-input {
+            @apply px-2 text-sm;
+            display: flex;
+            align-items: center;
         }
       }
       @keyframes scroll {
         0% { transform: translateX(0); }
         100% { transform: translateX(-50%); }
       }
+      .animate-scroll {
+        animation: scroll 40s linear infinite;
+      }
+      .pulse-card {
+        animation: pulse-card 3s ease-in-out infinite;
+      }
+      @keyframes pulse-card {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.03); }
+      }
     </style>
     <script type="importmap">
-    {
-      "imports": {
-        "react/": "https://esm.sh/react@^19.2.4/",
-        "react": "https://esm.sh/react@^19.2.4",
-        "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.93.3",
-        "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-        "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0"
-      }
-    }
-    </script>
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.93.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
+    "next/": "https://esm.sh/next@^16.1.6/"
+  }
+}
+</script>
   </head>
   <body class="bg-workspace font-display text-slate-900 min-h-screen overflow-x-hidden">
     <div id="root"></div>

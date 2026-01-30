@@ -31,20 +31,23 @@ export interface Sponsor {
   created_at?: string;
 }
 
-export interface TournamentSettings {
-  id: string;
-  location_url: string;
-  stadium_name: string;
-  contact_email: string;
-  is_registration_open: boolean;
+export interface SliderSettings {
+  id?: string;
+  before_image_url: string;
+  after_image_url: string;
 }
 
-export interface MatchEvent {
-  id: string;
-  match_id: string;
-  player_id: string;
-  type: 'goal' | 'yellow' | 'red';
-  minute?: string;
+export interface LocationSettings {
+  id?: string;
+  map_url: string;
+  image_url: string;
+  stadium_name?: string;
+}
+
+export interface SiteSettings {
+  id?: string;
+  header_logo_url: string;
+  footer_logo_url: string;
 }
 
 export interface Match {
@@ -58,8 +61,8 @@ export interface Match {
   status: 'scheduled' | 'live' | 'finished';
   group: 'A' | 'B';
   location: string;
-  home_team_name?: string; // Join helper
-  away_team_name?: string; // Join helper
+  home_team_name?: string; 
+  away_team_name?: string; 
   home_logo?: string;
   away_logo?: string;
 }
@@ -99,4 +102,5 @@ export interface Broadcast {
   narration: string;
   is_active: boolean;
   location: string;
+  cover_url?: string;
 }

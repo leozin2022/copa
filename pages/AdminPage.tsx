@@ -1,152 +1,204 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
-import { Team, Match, Player, TournamentSettings, Sponsor, Craque, SelectionRecord, SelectionPlayer } from '../types';
 
 const AdminPage: React.FC = () => {
   const [isLogged, setIsLogged] = useState(false);
   const [password, setPassword] = useState('');
-  const [activeSection, setActiveSection] = useState<'jogos' | 'artilharia' | 'campeonato' | 'craque' | 'selecao' | 'config' | 'sponsors' | 'classificacao'>('jogos');
+  const [activeSection, setActiveSection] = useState<'matches' | 'teams' | 'sponsors' | 'settings' | 'broadcasts'>('matches');
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  // Data States
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
-  const [craques, setCraques] = useState<Craque[]>([]);
-  const [selections, setSelections] = useState<SelectionRecord[]>([]);
-  const [settings, setSettings] = useState<TournamentSettings>({
-    id: 'default', location_url: '', stadium_name: '', contact_email: '', is_registration_open: false
-  });
+  const [teams, setTeams] = useState<any[]>([]);
+  const [matches, setMatches] = useState<any[]>([]);
+  const [sponsors, setSponsors] = useState<any[]>([]);
+  const [broadcasts, setBroadcasts] = useState<any[]>([]);
+  
+  // Edit States
+  const [editingBroadcastId, setEditingBroadcastId] = useState<string | null>(null);
 
-  // Form States
-  const [matchForm, setMatchForm] = useState<Partial<Match>>({
-    home_team_id: '', away_team_id: '', date: '', time: '', location: '', group: 'A', status: 'scheduled', home_score: 0, away_score: 0
-  });
-  const [teamForm, setTeamForm] = useState<Partial<Team>>({
-    name: '', logo_url: '', group: 'A', points: 0, played: 0, wins: 0, draws: 0, losses: 0, goals_for: 0, goals_against: 0
-  });
-  const [playerForm, setPlayerForm] = useState<Partial<Player>>({
-    name: '', team_id: '', goals: 0, yellow_cards: 0, red_cards: 0
+  // Forms
+  const [teamForm, setTeamForm] = useState({ name: '', logo_url: '', group: 'A' });
+  const [matchForm, setMatchForm] = useState({ 
+    home_team_id: '', away_team_id: '', home_score: 0, away_score: 0, 
+    date: '', time: '', status: 'scheduled', group: 'A', location: 'Baixa do Mel' 
   });
   const [sponsorForm, setSponsorForm] = useState({ name: '', logo_url: '' });
-  const [craqueForm, setCraqueForm] = useState<Craque>({ name: '', team: '', position: '', match_desc: '', photo_url: '', round: 'Rodada 01' });
-  const [selectionForm, setSelectionForm] = useState<{ round: string, players: SelectionPlayer[] }>({
-    round: 'Rodada 01',
-    players: Array(11).fill(null).map(() => ({ name: '', team_name: '', photo_url: '', position: '' }))
+  const [broadcastForm, setBroadcastForm] = useState({ 
+    title: '', team_a: '', team_b: '', date_info: '', youtube_url: '', narration: '', is_active: false, location: 'Baixa do Mel', cover_url: '' 
   });
+  const [siteLogos, setSiteLogos] = useState({ header_logo_url: '', footer_logo_url: '' });
+  const [locationForm, setLocationForm] = useState({ map_url: '', image_url: '', stadium_name: '' });
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: tData } = await supabase.from('teams').select('*').order('points', { ascending: false });
-    const { data: mData } = await supabase.from('matches').select('*, home:home_team_id(name), away:away_team_id(name)').order('date', { ascending: false });
-    const { data: pData } = await supabase.from('players').select('*, team:team_id(name)').order('goals', { ascending: false });
-    const { data: spData } = await supabase.from('sponsors').select('*').order('created_at', { ascending: false });
-    const { data: crData } = await supabase.from('craques').select('*').order('created_at', { ascending: false });
-    const { data: selData } = await supabase.from('selections').select('*').order('created_at', { ascending: false });
-    const { data: setts } = await supabase.from('settings').select('*').single();
-    
-    if (tData) setTeams(tData);
-    if (mData) setMatches(mData.map(m => ({ ...m, home_team_name: m.home?.name, away_team_name: m.away?.name })));
-    if (pData) setPlayers(pData.map(p => ({ ...p, team_name: p.team?.name })));
-    if (spData) setSponsors(spData);
-    if (crData) setCraques(crData);
-    if (selData) setSelections(selData);
-    if (setts) setSettings(setts);
-    setLoading(false);
+    try {
+      const { data: tData } = await supabase.from('teams').select('*').order('name', { ascending: true });
+      const { data: mData } = await supabase.from('matches').select('*, Mandante:home_team_id(name, logo_url), Visitante:away_team_id(name, logo_url)').order('date', { ascending: false });
+      const { data: spData } = await supabase.from('sponsors').select('*').order('created_at', { ascending: false });
+      const { data: bData } = await supabase.from('broadcasts').select('*').order('created_at', { ascending: false });
+      
+      const { data: stData } = await supabase.from('site_settings').select('*').limit(1).maybeSingle();
+      const { data: lcData } = await supabase.from('location_settings').select('*').limit(1).maybeSingle();
+
+      if (tData) setTeams(tData);
+      if (mData) setMatches(mData);
+      if (spData) setSponsors(spData);
+      if (bData) setBroadcasts(bData);
+      if (stData) setSiteLogos({ header_logo_url: stData.header_logo_url, footer_logo_url: stData.footer_logo_url });
+      if (lcData) setLocationForm({ map_url: lcData.map_url, image_url: lcData.image_url, stadium_name: lcData.stadium_name });
+
+    } catch (err) {
+      console.error("Fetch Error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     if (isLogged) fetchData();
   }, [isLogged]);
 
-  // Actions
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => callback(reader.result as string);
-      reader.readAsDataURL(file);
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>, bucketName: string) => {
+    try {
+      setUploading(true);
+      if (!event.target.files || event.target.files.length === 0) return null;
+      
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage.from(bucketName).upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+      return data.publicUrl;
+    } catch (error: any) {
+      alert('Erro no Upload: ' + error.message);
+      return null;
+    } finally {
+      setUploading(false);
     }
   };
 
-  const saveTeam = async () => {
-    if (!teamForm.name) return alert('Nome do time é obrigatório');
+  const genericSave = async (table: string, payload: any, resetForm: () => void) => {
     setLoading(true);
-    await supabase.from('teams').insert([teamForm]);
-    setTeamForm({ name: '', logo_url: '', group: 'A', points: 0, played: 0, wins: 0, draws: 0, losses: 0, goals_for: 0, goals_against: 0 });
-    fetchData();
-  };
-
-  const savePlayer = async () => {
-    if (!playerForm.name || !playerForm.team_id) return alert('Preencha nome e time');
-    setLoading(true);
-    await supabase.from('players').insert([playerForm]);
-    setPlayerForm({ name: '', team_id: '', goals: 0, yellow_cards: 0, red_cards: 0 });
-    fetchData();
-  };
-
-  const saveMatch = async () => {
-    if (!matchForm.home_team_id || !matchForm.away_team_id) return alert('Selecione os times');
-    setLoading(true);
-    await supabase.from('matches').insert([matchForm]);
-    setMatchForm({ home_team_id: '', away_team_id: '', date: '', time: '', location: '', group: 'A', status: 'scheduled', home_score: 0, away_score: 0 });
-    fetchData();
-  };
-
-  const saveSponsor = async () => {
-    if (!sponsorForm.name || !sponsorForm.logo_url) return alert('Preencha nome e logo');
-    setLoading(true);
-    await supabase.from('sponsors').insert([sponsorForm]);
-    setSponsorForm({ name: '', logo_url: '' });
-    fetchData();
-  };
-
-  const saveCraque = async () => {
-    if (!craqueForm.name || !craqueForm.photo_url) return alert('Preencha nome e foto');
-    setLoading(true);
-    await supabase.from('craques').insert([craqueForm]);
-    setCraqueForm({ name: '', team: '', position: '', match_desc: '', photo_url: '', round: 'Rodada 01' });
-    fetchData();
-  };
-
-  const saveSelection = async () => {
-    if (!selectionForm.round) return alert('Defina a rodada');
-    setLoading(true);
-    await supabase.from('selections').insert([selectionForm]);
-    alert('Seleção da Rodada salva!');
-    fetchData();
-  };
-
-  const saveSettings = async () => {
-    setLoading(true);
-    await supabase.from('settings').upsert([settings]);
-    alert('Configurações salvas!');
-    fetchData();
+    const { error } = await supabase.from(table).insert(payload);
+    if (error) {
+      alert("Erro ao salvar: " + error.message);
+    } else {
+      resetForm();
+      fetchData();
+    }
+    setLoading(false);
   };
 
   const deleteItem = async (table: string, id: string) => {
-    if (!confirm('Tem certeza que deseja excluir?')) return;
+    if (!confirm('Deseja realmente deletar este registro?')) return;
     setLoading(true);
-    await supabase.from(table).delete().eq('id', id);
+    const { error } = await supabase.from(table).delete().eq('id', id);
+    if (error) alert("Erro ao deletar: " + error.message);
     fetchData();
+    setLoading(false);
   };
 
-  const updateSelectionPlayer = (index: number, field: keyof SelectionPlayer, value: string) => {
-    const newPlayers = [...selectionForm.players];
-    newPlayers[index] = { ...newPlayers[index], [field]: value };
-    setSelectionForm({ ...selectionForm, players: newPlayers });
+  const handleSaveBroadcast = async () => {
+    if (!broadcastForm.title || !broadcastForm.youtube_url) {
+      alert("Título e URL do YouTube são obrigatórios!");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (editingBroadcastId) {
+        // Lógica de Update explícita
+        const { error } = await supabase
+          .from('broadcasts')
+          .update({
+            title: broadcastForm.title,
+            team_a: broadcastForm.team_a,
+            team_b: broadcastForm.team_b,
+            date_info: broadcastForm.date_info,
+            youtube_url: broadcastForm.youtube_url,
+            narration: broadcastForm.narration,
+            is_active: broadcastForm.is_active,
+            location: broadcastForm.location,
+            cover_url: broadcastForm.cover_url // Garante que a capa está no payload
+          })
+          .eq('id', editingBroadcastId);
+        
+        if (error) throw error;
+        alert("Transmissão atualizada com sucesso!");
+      } else {
+        // Lógica de Insert
+        const { error } = await supabase.from('broadcasts').insert([broadcastForm]);
+        if (error) throw error;
+        alert("Nova transmissão criada com sucesso!");
+      }
+      
+      cancelEditBroadcast();
+      fetchData();
+    } catch (error: any) {
+      alert("Erro ao salvar: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startEditBroadcast = (b: any) => {
+    setEditingBroadcastId(b.id);
+    setBroadcastForm({
+      title: b.title || '',
+      team_a: b.team_a || '',
+      team_b: b.team_b || '',
+      date_info: b.date_info || '',
+      youtube_url: b.youtube_url || '',
+      narration: b.narration || '',
+      is_active: b.is_active || false,
+      location: b.location || 'Baixa do Mel',
+      cover_url: b.cover_url || ''
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEditBroadcast = () => {
+    setEditingBroadcastId(null);
+    setBroadcastForm({
+      title: '', team_a: '', team_b: '', date_info: '', 
+      youtube_url: '', narration: '', is_active: false, 
+      location: 'Baixa do Mel', cover_url: ''
+    });
+  };
+
+  const toggleBroadcastStatus = async (id: string, current: boolean) => {
+    setLoading(true);
+    const { error } = await supabase.from('broadcasts').update({ is_active: !current }).eq('id', id);
+    if (error) alert(error.message);
+    fetchData();
+    setLoading(false);
+  };
+
+  const saveSettings = async (table: string, form: any, label: string) => {
+    setLoading(true);
+    const current = await supabase.from(table).select('id').limit(1).maybeSingle();
+    const { error } = await supabase.from(table).upsert({
+      id: current.data?.id,
+      ...form
+    });
+    setLoading(false);
+    if (!error) alert(`${label} atualizado com sucesso!`);
+    else alert(`Erro ao atualizar ${label}: ` + error.message);
   };
 
   if (!isLogged) {
     return (
-      <div className="min-h-screen bg-workspace flex items-center justify-center p-6">
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
         <div className="w-full max-w-md bg-black border-8 border-primary p-10 shadow-[20px_20px_0_0_#000]">
-          <h2 className="text-white text-3xl font-black uppercase italic mb-8 text-center tracking-tighter">Portal Admin</h2>
+          <h2 className="text-white text-3xl font-black uppercase italic mb-8 text-center tracking-tighter">Acesso Admin</h2>
           <form onSubmit={(e) => { e.preventDefault(); if(password === '220611') setIsLogged(true); else alert('Senha Incorreta'); }} className="space-y-6">
-            <input type="password" placeholder="SENHA" className="bee-input h-16 text-center text-xl" value={password} onChange={e => setPassword(e.target.value)} />
-            <button className="w-full bg-primary text-black h-16 font-black uppercase text-xl shadow-[5px_5px_0_0_#555]">Acessar</button>
+            <input type="password" placeholder="SENHA" className="bee-input h-16 text-center text-xl uppercase" value={password} onChange={e => setPassword(e.target.value)} />
+            <button className="w-full bg-primary text-black h-16 font-black uppercase text-xl hover:translate-x-1 hover:translate-y-1 transition-transform active:shadow-none">Entrar</button>
           </form>
         </div>
       </div>
@@ -154,269 +206,362 @@ const AdminPage: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white font-display">
-      <aside className="w-72 bg-black border-r-4 border-black flex flex-col justify-between p-6 shrink-0 z-50 overflow-y-auto">
-        <div className="flex flex-col gap-6">
-          <div className="flex gap-3 items-center">
-            <div className="bg-primary border-2 border-black size-10 flex items-center justify-center text-black rotate-6 shadow-[2px_2px_0_0_#fff]"><span className="material-symbols-outlined font-black">settings</span></div>
-            <h1 className="text-white text-base font-black uppercase tracking-tighter leading-none text-left">Painel de<br/><span className="text-primary italic">Controle</span></h1>
-          </div>
-          <nav className="flex flex-col gap-1">
-            {[
-              { id: 'jogos', label: 'Jogos & Súmula', icon: 'sports_soccer' },
-              { id: 'classificacao', label: 'Classificação', icon: 'table_rows' },
-              { id: 'artilharia', label: 'Artilharia', icon: 'format_list_numbered' },
-              { id: 'campeonato', label: 'Gestão de Times', icon: 'leaderboard' },
-              { id: 'craque', label: 'Craque do Jogo', icon: 'stars' },
-              { id: 'selecao', label: 'Seleção da Rodada', icon: 'groups' },
-              { id: 'sponsors', label: 'Patrocinadores', icon: 'ads_click' },
-              { id: 'config', label: 'Configurações', icon: 'settings' },
-            ].map((item) => (
-              <button key={item.id} onClick={() => setActiveSection(item.id as any)} className={`flex items-center gap-3 px-4 py-3 border-2 uppercase font-black text-[10px] transition-all ${activeSection === item.id ? 'bg-primary text-black border-black translate-x-1 shadow-[4px_4px_0_0_#fff]' : 'text-white/70 border-transparent hover:bg-white/10'}`}>
-                <span className="material-symbols-outlined text-[18px]">{item.icon}</span>{item.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-        <button onClick={() => setIsLogged(false)} className="bee-btn-black !bg-red-600 !mt-8">SAIR</button>
+    <div className="flex h-screen bg-white font-display overflow-hidden text-black">
+      <aside className="w-64 bg-black flex flex-col p-6 shrink-0 border-r-4 border-black overflow-y-auto">
+        <div className="text-primary font-black italic text-xl mb-10 tracking-tighter uppercase">Painel CSD</div>
+        <nav className="flex flex-col gap-2 flex-grow">
+          {[
+            { id: 'matches', label: 'Partidas', icon: 'sports_soccer' },
+            { id: 'teams', label: 'Equipes', icon: 'shield' },
+            { id: 'broadcasts', label: 'Transmissões', icon: 'live_tv' },
+            { id: 'sponsors', label: 'Patrocinadores', icon: 'handshake' },
+            { id: 'settings', label: 'Configurações', icon: 'settings' },
+          ].map((item) => (
+            <button 
+              key={item.id} 
+              onClick={() => { setActiveSection(item.id as any); cancelEditBroadcast(); }} 
+              className={`flex items-center gap-3 px-4 py-3 border-2 uppercase font-black text-[10px] transition-all ${activeSection === item.id ? 'bg-primary text-black border-black translate-x-1 shadow-[4px_4px_0_0_#fff]' : 'text-white/70 border-transparent hover:bg-white/10'}`}
+            >
+              <span className="material-symbols-outlined text-[18px]">{item.icon}</span>{item.label}
+            </button>
+          ))}
+        </nav>
+        
+        <button 
+          onClick={() => setIsLogged(false)}
+          className="mt-auto flex items-center gap-3 px-4 py-3 border-2 border-red-600 text-red-600 uppercase font-black text-[10px] hover:bg-red-600 hover:text-white transition-all"
+        >
+          <span className="material-symbols-outlined text-[18px]">logout</span>Sair do Admin
+        </button>
       </aside>
 
       <main className="flex-1 overflow-y-auto p-12 bg-[#fafafa]">
-        <div className="max-w-6xl mx-auto space-y-12">
+        <div className="max-w-6xl mx-auto space-y-12 pb-20">
           
-          {/* SEÇÃO: JOGOS */}
-          {activeSection === 'jogos' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-              <header className="border-b-8 border-black pb-4"><h2 className="text-5xl font-black uppercase italic tracking-tighter">Jogos & Resultados</h2></header>
-              <div className="bee-card bg-white space-y-6">
-                 <h3 className="font-black uppercase italic text-xl border-b-2 border-black pb-2">Agendar Partida</h3>
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                    <select className="bee-input" value={matchForm.home_team_id} onChange={e => setMatchForm({...matchForm, home_team_id: e.target.value})}>
-                      <option value="">Mandante...</option>
-                      {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
-                    <div className="flex items-center justify-center font-black italic text-3xl">X</div>
-                    <select className="bee-input" value={matchForm.away_team_id} onChange={e => setMatchForm({...matchForm, away_team_id: e.target.value})}>
-                      <option value="">Visitante...</option>
-                      {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
-                 </div>
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <input type="date" className="bee-input" value={matchForm.date} onChange={e => setMatchForm({...matchForm, date: e.target.value})} />
-                    <input type="time" className="bee-input" value={matchForm.time} onChange={e => setMatchForm({...matchForm, time: e.target.value})} />
-                    <input className="bee-input" placeholder="Local" value={matchForm.location} onChange={e => setMatchForm({...matchForm, location: e.target.value})} />
-                 </div>
-                 <button onClick={saveMatch} disabled={loading} className="w-full bee-btn-black !bg-primary !text-black shadow-[4px_4px_0_0_#000]">ADICIONAR JOGO</button>
+          {activeSection === 'broadcasts' && (
+            <div className="space-y-10">
+              <div className="flex justify-between items-end border-b-8 border-black pb-2">
+                <h2 className="text-5xl font-black uppercase italic">{editingBroadcastId ? 'Editando Transmissão' : 'Transmissões ao Vivo'}</h2>
+                {editingBroadcastId && (
+                  <button onClick={cancelEditBroadcast} className="bg-zinc-200 text-black px-4 py-2 font-black uppercase text-[10px] border-2 border-black hover:bg-black hover:text-white transition-all">Cancelar Edição</button>
+                )}
+              </div>
+
+              <div className="bee-card !bg-white">
+                <div className="grid md:grid-cols-2 gap-8 mb-6">
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block font-black uppercase text-[10px] mb-1">Título da Live</label>
+                      <input className="bee-input" placeholder="Ex: Grande Final ou Rodada 05" value={broadcastForm.title} onChange={e => setBroadcastForm({...broadcastForm, title: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block font-black uppercase text-[10px] mb-1">Link do YouTube</label>
+                      <input className="bee-input" placeholder="https://youtube.com/live/..." value={broadcastForm.youtube_url} onChange={e => setBroadcastForm({...broadcastForm, youtube_url: e.target.value})} />
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col">
+                    <label className="block font-black uppercase text-[10px] mb-1">Capa da Transmissão {uploading && <span className="text-primary animate-pulse ml-2">(SUBINDO...)</span>}</label>
+                    <div className="flex-1 flex flex-col items-center justify-center border-4 border-dashed border-black/20 p-4 bg-zinc-50 relative min-h-[160px] overflow-hidden group">
+                       {broadcastForm.cover_url ? (
+                         <img src={broadcastForm.cover_url} className="absolute inset-0 w-full h-full object-cover" />
+                       ) : (
+                         <span className="material-symbols-outlined text-4xl opacity-20">image_search</span>
+                       )}
+                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
+                          <p className="text-[10px] font-black uppercase text-white bg-black/60 px-4 py-2 border border-white">Alterar Capa</p>
+                       </div>
+                       <input 
+                        type="file" 
+                        className="absolute inset-0 opacity-0 cursor-pointer z-20" 
+                        onChange={async (e) => { 
+                          const url = await handleUpload(e, 'teams'); 
+                          if(url) setBroadcastForm(prev => ({...prev, cover_url: url})); 
+                        }} 
+                       />
+                    </div>
+                    <p className="text-[9px] font-bold text-zinc-400 mt-2 uppercase tracking-widest">Recomendado: 1280x720px (16:9)</p>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-6 mb-6">
+                  <div>
+                    <label className="block font-black uppercase text-[10px] mb-1">Equipe A</label>
+                    <input className="bee-input" value={broadcastForm.team_a} onChange={e => setBroadcastForm({...broadcastForm, team_a: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block font-black uppercase text-[10px] mb-1">Equipe B</label>
+                    <input className="bee-input" value={broadcastForm.team_b} onChange={e => setBroadcastForm({...broadcastForm, team_b: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block font-black uppercase text-[10px] mb-1">Narrador / Transmissão por:</label>
+                    <input className="bee-input" value={broadcastForm.narration} onChange={e => setBroadcastForm({...broadcastForm, narration: e.target.value})} />
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-2 gap-6 mb-8">
+                  <div>
+                    <label className="block font-black uppercase text-[10px] mb-1">Data e Horário (Informação)</label>
+                    <input className="bee-input" placeholder="Sábado, 15:30h" value={broadcastForm.date_info} onChange={e => setBroadcastForm({...broadcastForm, date_info: e.target.value})} />
+                  </div>
+                  <div className="flex items-end">
+                    <label className="flex items-center gap-3 cursor-pointer bg-zinc-100 p-3 w-full border-2 border-black font-black uppercase text-[10px] hover:bg-zinc-200 transition-colors">
+                      <input type="checkbox" checked={broadcastForm.is_active} onChange={e => setBroadcastForm({...broadcastForm, is_active: e.target.checked})} className="size-5 border-2 border-black text-primary focus:ring-0" />
+                      Ativar no Feed Principal agora
+                    </label>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleSaveBroadcast} 
+                  className={`bee-btn-black w-full ${(loading || uploading) ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                  disabled={loading || uploading}
+                >
+                  {(loading || uploading) ? 'PROCESSANDO...' : (editingBroadcastId ? 'SALVAR ALTERAÇÕES NA LIVE' : 'PUBLICAR NOVA TRANSMISSÃO')}
+                </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {matches.map(m => (
-                  <div key={m.id} className="bg-white border-4 border-black p-4 flex justify-between items-center shadow-[6px_6px_0_0_#000]">
-                    <div>
-                      <p className="text-[10px] font-black uppercase text-zinc-400">{m.date} - {m.time}</p>
-                      <h4 className="font-black uppercase italic">{m.home_team_name} vs {m.away_team_name}</h4>
+                {broadcasts.map(b => (
+                  <div key={b.id} className={`bg-white border-4 border-black flex flex-col shadow-[6px_6px_0_0_#000] relative overflow-hidden group transition-all ${b.id === editingBroadcastId ? 'ring-4 ring-yellow-500 scale-[1.02]' : ''}`}>
+                    <div className="h-32 bg-zinc-900 relative overflow-hidden">
+                       {b.cover_url ? (
+                         <img src={b.cover_url} className="w-full h-full object-cover" />
+                       ) : (
+                         <div className="w-full h-full flex items-center justify-center italic text-white/20 uppercase text-[10px] font-black">Sem Capa Visual</div>
+                       )}
+                       <div className="absolute top-2 right-2 flex gap-1">
+                          <button 
+                            onClick={() => toggleBroadcastStatus(b.id, b.is_active)}
+                            className={`px-3 py-1 font-black uppercase text-[9px] border-2 border-black transition-colors ${b.is_active ? 'bg-primary text-black' : 'bg-black text-white'}`}
+                          >
+                            {b.is_active ? 'AO VIVO' : 'OFFLINE'}
+                          </button>
+                          <button onClick={() => startEditBroadcast(b)} className="bg-white text-black size-8 flex items-center justify-center border-2 border-black hover:bg-primary transition-colors">
+                            <span className="material-symbols-outlined text-sm">edit</span>
+                          </button>
+                          <button onClick={() => deleteItem('broadcasts', b.id)} className="bg-red-600 text-white size-8 flex items-center justify-center border-2 border-black hover:bg-black transition-colors">
+                            <span className="material-symbols-outlined text-sm">delete</span>
+                          </button>
+                       </div>
                     </div>
-                    <button onClick={() => deleteItem('matches', m.id)} className="text-red-600 font-black">EXCLUIR</button>
+                    <div className="p-4 bg-white">
+                      <p className="font-black uppercase italic text-sm truncate">{b.title}</p>
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase mt-1">{b.team_a} x {b.team_b} | {b.date_info}</p>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* SEÇÃO: TIMES */}
-          {activeSection === 'campeonato' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-              <header className="border-b-8 border-black pb-4"><h2 className="text-5xl font-black uppercase italic tracking-tighter">Gestão de Times</h2></header>
-              <div className="bee-card bg-white space-y-6">
-                 <h3 className="font-black uppercase italic text-xl border-b-2 border-black pb-2">Novo Clube</h3>
-                 <div className="grid md:grid-cols-2 gap-6">
-                    <input className="bee-input" placeholder="Nome do Time" value={teamForm.name} onChange={e => setTeamForm({...teamForm, name: e.target.value})} />
-                    <select className="bee-input" value={teamForm.group} onChange={e => setTeamForm({...teamForm, group: e.target.value as any})}>
+          {activeSection === 'teams' && (
+            <div className="space-y-10">
+              <h2 className="text-5xl font-black uppercase italic border-b-8 border-black pb-2">Gerenciar Equipes</h2>
+              <div className="bee-card !bg-white grid md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block font-black uppercase text-[10px] mb-1">Nome da Equipe</label>
+                    <input className="bee-input" value={teamForm.name} onChange={e => setTeamForm({...teamForm, name: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block font-black uppercase text-[10px] mb-1">Grupo</label>
+                    <select className="bee-input" value={teamForm.group} onChange={e => setTeamForm({...teamForm, group: e.target.value as 'A' | 'B'})}>
                       <option value="A">Grupo A</option>
                       <option value="B">Grupo B</option>
                     </select>
-                 </div>
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase">Logo do Clube (URL ou Upload)</label>
-                    <input type="file" onChange={(e) => handleImageUpload(e, (url) => setTeamForm({...teamForm, logo_url: url}))} className="text-xs w-full file:bg-black file:text-white file:border-0 file:px-4 file:py-2 border-2 border-black p-2" />
-                 </div>
-                 <button onClick={saveTeam} disabled={loading} className="w-full bee-btn-black !bg-primary !text-black shadow-[4px_4px_0_0_#000]">CADASTRAR TIME</button>
+                  </div>
+                  <button onClick={() => genericSave('teams', teamForm, () => setTeamForm({name:'', logo_url:'', group:'A'}))} className="bee-btn-black w-full" disabled={loading}>Salvar Equipe</button>
+                </div>
+                <div className="flex flex-col items-center justify-center border-4 border-dashed border-black/20 p-4 bg-zinc-50 relative min-h-[160px]">
+                   {teamForm.logo_url ? <img src={teamForm.logo_url} className="h-24 object-contain" /> : <span className="material-symbols-outlined text-4xl opacity-20">add_photo_alternate</span>}
+                   <p className="text-[9px] font-black uppercase opacity-40 mt-2">Clique para subir escudo</p>
+                   <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={async (e) => { const url = await handleUpload(e, 'teams'); if(url) setTeamForm({...teamForm, logo_url: url}); }} />
+                </div>
               </div>
-
+              
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {teams.map(t => (
-                  <div key={t.id} className="bg-white border-4 border-black p-4 text-center relative group shadow-[6px_6px_0_0_#000]">
-                    <img src={t.logo_url} className="h-16 mx-auto object-contain mb-2" />
-                    <p className="font-black uppercase italic text-sm">{t.name}</p>
-                    <span className="text-[10px] bg-black text-white px-2 py-0.5">GRUPO {t.group}</span>
-                    <button onClick={() => deleteItem('teams', t.id)} className="absolute top-2 right-2 text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"><span className="material-symbols-outlined">delete</span></button>
+                  <div key={t.id} className="bg-white border-4 border-black p-4 flex flex-col items-center text-center relative shadow-[6px_6px_0_0_#000]">
+                    <img src={t.logo_url} className="h-16 w-16 object-contain mb-3" />
+                    <p className="font-black uppercase text-xs truncate w-full">{t.name}</p>
+                    <p className="text-[10px] bg-black text-primary px-2 py-0.5 mt-1 font-black uppercase">Grupo {t.group}</p>
+                    <button onClick={() => deleteItem('teams', t.id)} className="absolute -top-2 -right-2 bg-red-600 text-white size-6 flex items-center justify-center border-2 border-black hover:bg-black transition-colors">
+                      <span className="material-symbols-outlined text-sm">delete</span>
+                    </button>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* SEÇÃO: ARTILHARIA */}
-          {activeSection === 'artilharia' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-              <header className="border-b-8 border-black pb-4"><h2 className="text-5xl font-black uppercase italic tracking-tighter">Artilharia</h2></header>
-              <div className="bee-card bg-white space-y-6">
-                 <h3 className="font-black uppercase italic text-xl border-b-2 border-black pb-2">Cadastrar Atleta</h3>
-                 <div className="grid md:grid-cols-2 gap-4">
-                    <input className="bee-input" placeholder="Nome Completo" value={playerForm.name} onChange={e => setPlayerForm({...playerForm, name: e.target.value})} />
-                    <select className="bee-input" value={playerForm.team_id} onChange={e => setPlayerForm({...playerForm, team_id: e.target.value})}>
-                      <option value="">Vínculo com Time...</option>
+          {activeSection === 'matches' && (
+            <div className="space-y-10">
+              <h2 className="text-5xl font-black uppercase italic border-b-8 border-black pb-2">Gerenciar Partidas</h2>
+              <div className="bee-card !bg-white">
+                <div className="grid md:grid-cols-3 gap-6 mb-6">
+                  <div>
+                    <label className="block font-black uppercase text-[10px] mb-1">Mandante</label>
+                    <select className="bee-input" value={matchForm.home_team_id} onChange={e => setMatchForm({...matchForm, home_team_id: e.target.value})}>
+                      <option value="">Selecione...</option>
                       {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
-                 </div>
-                 <div className="grid grid-cols-3 gap-4">
-                    <input type="number" className="bee-input" placeholder="Gols" value={playerForm.goals} onChange={e => setPlayerForm({...playerForm, goals: parseInt(e.target.value)})} />
-                    <input type="number" className="bee-input" placeholder="CA" value={playerForm.yellow_cards} onChange={e => setPlayerForm({...playerForm, yellow_cards: parseInt(e.target.value)})} />
-                    <input type="number" className="bee-input" placeholder="CV" value={playerForm.red_cards} onChange={e => setPlayerForm({...playerForm, red_cards: parseInt(e.target.value)})} />
-                 </div>
-                 <button onClick={savePlayer} disabled={loading} className="w-full bee-btn-black !bg-primary !text-black shadow-[4px_4px_0_0_#000]">SALVAR ATLETA</button>
-              </div>
-
-              <div className="bg-white border-4 border-black shadow-[10px_10px_0_0_#000] overflow-hidden">
-                <table className="w-full text-left">
-                  <thead className="bg-black text-white text-[10px] font-black uppercase">
-                    <tr><th className="p-4">Nome</th><th className="p-4">Time</th><th className="p-4 text-center">Gols</th><th className="p-4 text-center">Ações</th></tr>
-                  </thead>
-                  <tbody className="font-bold text-sm">
-                    {players.map(p => (
-                      <tr key={p.id} className="border-b-2 border-zinc-100">
-                        <td className="p-4 uppercase italic">{p.name}</td>
-                        <td className="p-4 uppercase text-xs text-zinc-400">{p.team_name}</td>
-                        <td className="p-4 text-center font-black">{p.goals}</td>
-                        <td className="p-4 text-center"><button onClick={() => deleteItem('players', p.id)} className="text-red-600"><span className="material-symbols-outlined">delete</span></button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* SEÇÃO: CRAQUE */}
-          {activeSection === 'craque' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-              <header className="border-b-8 border-black pb-4"><h2 className="text-5xl font-black uppercase italic tracking-tighter">Craque do Jogo</h2></header>
-              <div className="grid lg:grid-cols-3 gap-12">
-                <div className="bee-card bg-white space-y-4 h-fit">
-                   <h3 className="font-black uppercase italic text-xl border-b-2 border-black pb-2">Eleger Destaque</h3>
-                   <input className="bee-input" placeholder="Nome" value={craqueForm.name} onChange={e => setCraqueForm({...craqueForm, name: e.target.value})} />
-                   <div className="grid grid-cols-2 gap-4">
-                      <input className="bee-input" placeholder="Time" value={craqueForm.team} onChange={e => setCraqueForm({...craqueForm, team: e.target.value})} />
-                      <input className="bee-input" placeholder="Posição" value={craqueForm.position} onChange={e => setCraqueForm({...craqueForm, position: e.target.value})} />
-                   </div>
-                   <textarea className="bee-input !h-24 py-2" placeholder="Descrição" value={craqueForm.match_desc} onChange={e => setCraqueForm({...craqueForm, match_desc: e.target.value})} />
-                   <input type="file" onChange={(e) => handleImageUpload(e, (url) => setCraqueForm({...craqueForm, photo_url: url}))} className="text-xs w-full file:bg-black file:text-white border-2 border-black p-2" />
-                   <button onClick={saveCraque} disabled={loading} className="w-full bee-btn-black !bg-primary !text-black shadow-[4px_4px_0_0_#000]">SALVAR CRAQUE</button>
+                  </div>
+                  <div className="flex flex-col items-center justify-center pt-6">
+                    <span className="font-black italic text-2xl">VS</span>
+                  </div>
+                  <div>
+                    <label className="block font-black uppercase text-[10px] mb-1">Visitante</label>
+                    <select className="bee-input" value={matchForm.away_team_id} onChange={e => setMatchForm({...matchForm, away_team_id: e.target.value})}>
+                      <option value="">Selecione...</option>
+                      {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                  </div>
                 </div>
-                <div className="lg:col-span-2 grid md:grid-cols-2 gap-6">
-                  {craques.map(c => (
-                    <div key={c.id} className="bg-yellow-500 border-4 border-black p-4 flex gap-4 shadow-[6px_6px_0_0_#000] relative group">
-                      <img src={c.photo_url} className="size-20 object-cover border-2 border-black" />
-                      <div><h5 className="font-black uppercase italic">{c.name}</h5><p className="text-[10px] uppercase">{c.round}</p></div>
-                      <button onClick={() => deleteItem('craques', c.id!)} className="absolute top-2 right-2 text-red-600 opacity-0 group-hover:opacity-100"><span className="material-symbols-outlined">delete</span></button>
+                
+                <div className="grid md:grid-cols-4 gap-6 mb-8">
+                  <div>
+                    <label className="block font-black uppercase text-[10px] mb-1">Placar Mandante</label>
+                    <input type="number" className="bee-input" value={matchForm.home_score} onChange={e => setMatchForm({...matchForm, home_score: parseInt(e.target.value)})} />
+                  </div>
+                  <div>
+                    <label className="block font-black uppercase text-[10px] mb-1">Placar Visitante</label>
+                    <input type="number" className="bee-input" value={matchForm.away_score} onChange={e => setMatchForm({...matchForm, away_score: parseInt(e.target.value)})} />
+                  </div>
+                  <div>
+                    <label className="block font-black uppercase text-[10px] mb-1">Data</label>
+                    <input type="date" className="bee-input" value={matchForm.date} onChange={e => setMatchForm({...matchForm, date: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block font-black uppercase text-[10px] mb-1">Horário</label>
+                    <input type="time" className="bee-input" value={matchForm.time} onChange={e => setMatchForm({...matchForm, time: e.target.value})} />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-6 mb-8">
+                  <div>
+                    <label className="block font-black uppercase text-[10px] mb-1">Status</label>
+                    <select className="bee-input" value={matchForm.status} onChange={e => setMatchForm({...matchForm, status: e.target.value as any})}>
+                      <option value="scheduled">Agendado</option>
+                      <option value="live">Ao Vivo</option>
+                      <option value="finished">Finalizado</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-black uppercase text-[10px] mb-1">Grupo</label>
+                    <select className="bee-input" value={matchForm.group} onChange={e => setMatchForm({...matchForm, group: e.target.value as any})}>
+                      <option value="A">Grupo A</option>
+                      <option value="B">Grupo B</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-black uppercase text-[10px] mb-1">Local</label>
+                    <input className="bee-input" value={matchForm.location} onChange={e => setMatchForm({...matchForm, location: e.target.value})} />
+                  </div>
+                </div>
+
+                <button onClick={() => genericSave('matches', matchForm, () => setMatchForm({
+                  home_team_id: '', away_team_id: '', home_score: 0, away_score: 0, 
+                  date: '', time: '', status: 'scheduled', group: 'A', location: 'Baixa do Mel'
+                }))} className="bee-btn-black w-full">Publicar Partida</button>
+              </div>
+
+              <div className="space-y-4">
+                {matches.map(m => (
+                  <div key={m.id} className="bg-white border-4 border-black p-4 flex items-center justify-between shadow-[4px_4px_0_0_#000]">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="text-right flex-1">
+                        <span className="font-black uppercase text-xs">{m.Mandante?.name}</span>
+                      </div>
+                      <div className="bg-black text-primary px-3 py-1 font-black min-w-[60px] text-center">
+                        {m.home_score} x {m.away_score}
+                      </div>
+                      <div className="flex-1">
+                        <span className="font-black uppercase text-xs">{m.Visitante?.name}</span>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* SEÇÃO: SELEÇÃO */}
-          {activeSection === 'selecao' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-              <header className="border-b-8 border-black pb-4"><h2 className="text-5xl font-black uppercase italic tracking-tighter">Seleção da Rodada</h2></header>
-              <div className="bee-card bg-white space-y-6">
-                <input className="bee-input" placeholder="Título (Ex: 1ª Rodada)" value={selectionForm.round} onChange={e => setSelectionForm({...selectionForm, round: e.target.value})} />
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                   {selectionForm.players.map((p, idx) => (
-                     <div key={idx} className="bg-zinc-50 border-2 border-black p-2 space-y-1">
-                        <input className="bee-input !h-8 !text-[9px]" placeholder="Nome" value={p.name} onChange={e => updateSelectionPlayer(idx, 'name', e.target.value)} />
-                        <input className="bee-input !h-8 !text-[9px]" placeholder="URL Foto" value={p.photo_url} onChange={e => updateSelectionPlayer(idx, 'photo_url', e.target.value)} />
-                     </div>
-                   ))}
-                </div>
-                <button onClick={saveSelection} disabled={loading} className="w-full bee-btn-black !bg-primary !text-black shadow-[4px_4px_0_0_#000]">PUBLICAR SELEÇÃO</button>
-              </div>
-              <div className="grid md:grid-cols-3 gap-6">
-                {selections.map(s => (
-                  <div key={s.id} className="bg-black text-white p-4 border-4 border-primary flex justify-between items-center">
-                    <span className="font-black italic uppercase">{s.round}</span>
-                    <button onClick={() => deleteItem('selections', s.id!)} className="text-red-500">EXCLUIR</button>
+                    <div className="px-6 border-l-2 border-black/10 text-[10px] font-bold uppercase text-zinc-400">
+                      {m.date} | {m.time}
+                    </div>
+                    <button onClick={() => deleteItem('matches', m.id)} className="bg-red-600 text-white size-10 flex items-center justify-center border-2 border-black hover:bg-black">
+                       <span className="material-symbols-outlined">delete</span>
+                    </button>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* SEÇÃO: PATROCINADORES */}
           {activeSection === 'sponsors' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-              <header className="border-b-8 border-black pb-4"><h2 className="text-5xl font-black uppercase italic tracking-tighter">Patrocinadores</h2></header>
-              <div className="bee-card bg-white space-y-6">
-                 <input className="bee-input" placeholder="Nome do Patrocinador" value={sponsorForm.name} onChange={e => setSponsorForm({...sponsorForm, name: e.target.value})} />
-                 <input type="file" onChange={(e) => handleImageUpload(e, (url) => setSponsorForm({...sponsorForm, logo_url: url}))} className="text-xs w-full file:bg-black file:text-white border-2 border-black p-2" />
-                 <button onClick={saveSponsor} disabled={loading} className="w-full bee-btn-black !bg-primary !text-black shadow-[4px_4px_0_0_#000]">ADICIONAR MARCA</button>
+            <div className="space-y-8">
+              <h2 className="text-5xl font-black uppercase italic border-b-8 border-black pb-2">Patrocinadores</h2>
+              <div className="bee-card !bg-white grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <label className="block font-black uppercase text-[10px]">Nome do Patrocinador</label>
+                  <input className="bee-input" placeholder="Ex: Supermercado X" value={sponsorForm.name} onChange={e => setSponsorForm({...sponsorForm, name: e.target.value})} />
+                  <button onClick={() => genericSave('sponsors', sponsorForm, () => setSponsorForm({name:'', logo_url:''}))} className="bee-btn-black w-full" disabled={uploading || loading}>Adicionar Patrocinador</button>
+                </div>
+                <div className="flex flex-col items-center justify-center border-4 border-dashed border-black/20 p-4 bg-zinc-50 relative min-h-[160px]">
+                   {sponsorForm.logo_url ? <img src={sponsorForm.logo_url} className="h-24 object-contain" /> : <span className="material-symbols-outlined text-4xl opacity-20">add_photo_alternate</span>}
+                   <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={async (e) => { const url = await handleUpload(e, 'sponsors'); if(url) setSponsorForm({...sponsorForm, logo_url: url}); }} />
+                </div>
               </div>
-              <div className="grid grid-cols-3 md:grid-cols-5 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
                 {sponsors.map(s => (
-                  <div key={s.id} className="bg-white border-4 border-black p-2 relative group flex flex-col items-center">
-                    <img src={s.logo_url} className="h-12 object-contain" />
-                    <button onClick={() => deleteItem('sponsors', s.id)} className="absolute top-1 right-1 text-red-600 opacity-0 group-hover:opacity-100"><span className="material-symbols-outlined text-[14px]">delete</span></button>
+                  <div key={s.id} className="bg-white border-4 border-black p-4 text-center relative shadow-[6px_6px_0_0_#000]">
+                    <img src={s.logo_url} className="h-16 mx-auto object-contain mb-2" />
+                    <p className="text-[10px] font-black uppercase truncate">{s.name}</p>
+                    <button onClick={() => deleteItem('sponsors', s.id)} className="absolute -top-2 -right-2 bg-red-600 text-white size-6 flex items-center justify-center border-2 border-black">
+                      <span className="material-symbols-outlined text-xs">close</span>
+                    </button>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* SEÇÃO: CONFIG */}
-          {activeSection === 'config' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-              <header className="border-b-8 border-black pb-4"><h2 className="text-5xl font-black uppercase italic tracking-tighter">Configurações</h2></header>
-              <div className="bee-card bg-white space-y-6">
-                 <div className="space-y-4">
-                    <input className="bee-input" placeholder="Nome do Estádio Principal" value={settings.stadium_name} onChange={e => setSettings({...settings, stadium_name: e.target.value})} />
-                    <input className="bee-input" placeholder="URL Google Maps" value={settings.location_url} onChange={e => setSettings({...settings, location_url: e.target.value})} />
-                    <input className="bee-input" placeholder="E-mail de Contato" value={settings.contact_email} onChange={e => setSettings({...settings, contact_email: e.target.value})} />
-                 </div>
-                 <button onClick={saveSettings} disabled={loading} className="w-full bee-btn-black !bg-primary !text-black shadow-[4px_4px_0_0_#000]">SALVAR CONFIGURAÇÕES</button>
-              </div>
-            </div>
-          )}
-
-          {/* SEÇÃO: CLASSIFICACAO (VISTA RÁPIDA) */}
-          {activeSection === 'classificacao' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-              <header className="border-b-8 border-black pb-4"><h2 className="text-5xl font-black uppercase italic tracking-tighter">Classificação Atual</h2></header>
-              <div className="grid lg:grid-cols-2 gap-8">
-                {['A', 'B'].map(g => (
-                  <div key={g} className="bg-white border-4 border-black shadow-[8px_8px_0_0_#000] overflow-hidden">
-                    <div className="bg-black text-white p-3 font-black uppercase italic">Grupo {g}</div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-[10px] text-left">
-                        <thead className="bg-zinc-100 font-black uppercase"><tr><th className="p-2">Time</th><th className="p-2 text-center">P</th><th className="p-2 text-center">J</th><th className="p-2 text-center">SG</th></tr></thead>
-                        <tbody>
-                          {teams.filter(t => t.group === g).map(t => (
-                            <tr key={t.id} className="border-b border-zinc-100">
-                              <td className="p-2 font-bold uppercase">{t.name}</td>
-                              <td className="p-2 text-center font-black">{t.points}</td>
-                              <td className="p-2 text-center">{t.played}</td>
-                              <td className="p-2 text-center">{t.goals_for - t.goals_against}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+          {activeSection === 'settings' && (
+            <div className="space-y-16">
+              <div className="space-y-6">
+                <h2 className="text-4xl font-black uppercase italic border-b-4 border-black pb-2">Logotipos do Site</h2>
+                <div className="grid md:grid-cols-2 gap-8">
+                  <div className="bee-card !bg-white space-y-4">
+                    <p className="font-black uppercase text-xs">Logotipo Início (Cabeçalho)</p>
+                    <div className="border-2 border-dashed border-black/20 relative aspect-video flex items-center justify-center overflow-hidden bg-black">
+                       {siteLogos.header_logo_url ? <img src={siteLogos.header_logo_url} className="max-h-full max-w-full object-contain" /> : <span className="material-symbols-outlined text-4xl text-white/20">logo_dev</span>}
+                       <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={async (e) => { const url = await handleUpload(e, 'teams'); if(url) setSiteLogos({...siteLogos, header_logo_url: url}); }} />
                     </div>
                   </div>
-                ))}
+                  <div className="bee-card !bg-white space-y-4">
+                    <p className="font-black uppercase text-xs">Logotipo Final (Rodapé)</p>
+                    <div className="border-2 border-dashed border-black/20 relative aspect-video flex items-center justify-center overflow-hidden bg-black">
+                       {siteLogos.footer_logo_url ? <img src={siteLogos.footer_logo_url} className="max-h-full max-w-full object-contain" /> : <span className="material-symbols-outlined text-4xl text-white/20">logo_dev</span>}
+                       <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={async (e) => { const url = await handleUpload(e, 'teams'); if(url) setSiteLogos({...siteLogos, footer_logo_url: url}); }} />
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => saveSettings('site_settings', siteLogos, 'Logotipos')} className="bee-btn-black">Salvar Logotipos</button>
+              </div>
+
+              <div className="space-y-6">
+                <h2 className="text-4xl font-black uppercase italic border-b-4 border-black pb-2">Configuração do Mapa</h2>
+                <div className="grid md:grid-cols-2 gap-8">
+                   <div className="space-y-4">
+                      <label className="block font-black uppercase text-[10px]">Nome do Estádio</label>
+                      <input className="bee-input" value={locationForm.stadium_name} onChange={e => setLocationForm({...locationForm, stadium_name: e.target.value})} />
+                      <label className="block font-black uppercase text-[10px]">URL Google Maps</label>
+                      <input className="bee-input" value={locationForm.map_url} placeholder="https://goo.gl/maps/..." onChange={e => setLocationForm({...locationForm, map_url: e.target.value})} />
+                   </div>
+                   <div className="bee-card !bg-white space-y-4">
+                    <p className="font-black uppercase text-xs">Foto do Estádio</p>
+                    <div className="border-2 border-dashed border-black/20 relative aspect-video flex items-center justify-center overflow-hidden">
+                       {locationForm.image_url ? <img src={locationForm.image_url} className="w-full h-full object-cover" /> : <span className="material-symbols-outlined text-4xl opacity-20">stadium</span>}
+                       <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={async (e) => { const url = await handleUpload(e, 'teams'); if(url) setLocationForm({...locationForm, image_url: url}); }} />
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => saveSettings('location_settings', locationForm, 'Localização')} className="bee-btn-black">Salvar Mapa</button>
               </div>
             </div>
           )}
-
         </div>
       </main>
     </div>

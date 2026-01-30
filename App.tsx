@@ -3,6 +3,7 @@ import React from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import ChatBot from './components/ChatBot';
 import HomePage from './pages/HomePage';
 import ClassificationPage from './pages/ClassificationPage';
 import AdminPage from './pages/AdminPage';
@@ -26,6 +27,7 @@ const App: React.FC = () => {
           </Routes>
         </main>
         <Footer />
+        <ChatBot />
       </div>
     </HashRouter>
   );

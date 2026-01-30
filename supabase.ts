@@ -1,17 +1,8 @@
 
-// Since actual Supabase keys are environment-specific, 
-// we assume createClient will work with injected process.env.
-// For this demo, we'll provide a mockable interface or a real client if available.
-
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+// URL e Chave Anon fornecidas pelo usuário para conexão direta com o banco de dados
+const supabaseUrl = 'https://kuarblmlafyidkwifpil.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1YXJibG1sYWZ5aWRrd2lmcGlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NDAzNTIsImV4cCI6MjA4NTMxNjM1Mn0.RY2QqQVIRryazRKYf1786QntYBLqFFSIWWWc0Vvtcqk';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-/**
- * Nota: Como este é um ambiente de demonstração, as funções de dados
- * falharão se as chaves não forem válidas. Em um app real, 
- * você preencheria as tabelas: teams, matches, craque_partida.
- */

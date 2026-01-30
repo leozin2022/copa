@@ -1,0 +1,41 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white font-display text-slate-900;
+  }
+}
+
+@layer utilities {
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+  .bee-card {
+    @apply bg-primary border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)];
+  }
+  .bee-btn-black {
+    @apply bg-black text-white font-black uppercase py-3 px-6 border-2 border-black hover:bg-zinc-800 transition-all tracking-widest flex items-center justify-center gap-2;
+  }
+  .bee-input {
+    @apply w-full bg-white border-2 border-black rounded-none text-black font-bold h-12 px-3 focus:ring-0 focus:border-black outline-none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+.pulse-card {
+  animation: pulse-card 3s ease-in-out infinite;
+}
+
+@keyframes pulse-card {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
