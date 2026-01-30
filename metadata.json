@@ -1,0 +1,8 @@
+{
+  "name": "Copa Serra Dourada - Portal Oficial",
+  "description": "Uma plataforma completa para gestão e acompanhamento da Copa Serra Dourada, apresentando classificações em tempo real, destaques dos craques da rodada e um painel administrativo integrado com Supabase.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
