@@ -7,6 +7,15 @@ const Header: React.FC = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  const navItems = [
+    { label: 'Início', path: '/' },
+    { label: 'Classificação', path: '/classificacao' },
+    { label: 'Transmissões', path: '/transmissoes' },
+    { label: 'Seleção', path: '/selecao' },
+    { label: 'Galeria', path: '/galeria' },
+    { label: 'Admin', path: '/admin' },
+  ];
+
   return (
     <header className="sticky top-0 z-50 w-full bg-black text-white border-b-4 border-yellow-500 shadow-lg">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -19,18 +28,12 @@ const Header: React.FC = () => {
           </h1>
         </Link>
         
-        <nav className="hidden md:flex items-center gap-8">
-          {[
-            { label: 'Início', path: '/' },
-            { label: 'Classificação', path: '/classificacao' },
-            { label: 'Transmissões', path: '/transmissoes' },
-            { label: 'Seleção', path: '/selecao' },
-            { label: 'Admin', path: '/admin' },
-          ].map((item) => (
+        <nav className="hidden md:flex items-center gap-6">
+          {navItems.map((item) => (
             <Link
-              key={item.path}
+              key={item.label}
               to={item.path}
-              className={`text-sm font-black uppercase tracking-widest hover:text-yellow-500 transition-colors ${
+              className={`text-[10px] lg:text-xs font-black uppercase tracking-widest hover:text-yellow-500 transition-colors ${
                 isActive(item.path) ? 'text-yellow-500 border-b-2 border-yellow-500' : ''
               }`}
             >
@@ -39,9 +42,9 @@ const Header: React.FC = () => {
           ))}
         </nav>
 
-        <button className="bg-yellow-500 hover:bg-white text-black px-6 py-2 border-2 border-black font-black text-sm transition-all uppercase italic shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]">
-          ASSISTIR AO VIVO
-        </button>
+        <div className="md:hidden">
+            <span className="material-symbols-outlined text-yellow-500">menu</span>
+        </div>
       </div>
     </header>
   );

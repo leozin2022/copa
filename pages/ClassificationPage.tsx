@@ -138,8 +138,8 @@ const ClassificationPage: React.FC = () => {
           })}
         </div>
         
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 border-4 border-black bg-white">
+        <div className="mt-16">
+          <div className="p-6 border-4 border-black bg-white max-w-sm">
             <h4 className="font-black uppercase italic text-sm mb-2">Critérios de Desempate</h4>
             <ol className="text-xs font-bold text-zinc-500 space-y-1 list-decimal ml-4">
               <li>Maior número de vitórias</li>
@@ -148,15 +148,6 @@ const ClassificationPage: React.FC = () => {
               <li>Confronto direto</li>
               <li>Sorteio</li>
             </ol>
-          </div>
-          <div className="p-6 border-4 border-black bg-yellow-500 md:col-span-2 flex items-center justify-between">
-            <div>
-              <h4 className="font-black uppercase italic text-xl">Sua equipe está fora?</h4>
-              <p className="font-bold text-sm">Inscreva seu time para a próxima edição da Copa.</p>
-            </div>
-            <button className="bg-black text-white px-6 py-3 font-black uppercase text-xs border-2 border-black hover:bg-white hover:text-black transition-all">
-              INSCREVER AGORA
-            </button>
           </div>
         </div>
       </div>

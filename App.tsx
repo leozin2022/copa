@@ -8,6 +8,7 @@ import ClassificationPage from './pages/ClassificationPage';
 import AdminPage from './pages/AdminPage';
 import BroadcastPage from './pages/BroadcastPage';
 import SelectionPage from './pages/SelectionPage';
+import CraqueGalleryPage from './pages/CraqueGalleryPage';
 
 const App: React.FC = () => {
   return (
@@ -20,6 +21,7 @@ const App: React.FC = () => {
             <Route path="/classificacao" element={<ClassificationPage />} />
             <Route path="/transmissoes" element={<BroadcastPage />} />
             <Route path="/selecao" element={<SelectionPage />} />
+            <Route path="/galeria" element={<CraqueGalleryPage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </main>
