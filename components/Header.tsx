@@ -17,7 +17,6 @@ const Header: React.FC = () => {
   }, []);
 
   const isActive = (path: string) => {
-    if (!router) return false;
     return router.pathname === path;
   };
 
