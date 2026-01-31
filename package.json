@@ -15,7 +15,8 @@
     "react-dom": "^19.0.0",
     "@supabase/supabase-js": "^2.93.3",
     "@google/genai": "^1.38.0",
-    "lucide-react": "^0.400.0"
+    "lucide-react": "^0.400.0",
+    "react-router-dom": "^7.1.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.0",
@@ -24,6 +25,7 @@
     "typescript": "^5.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "@tailwindcss/forms": "^0.5.7"
   }
 }

@@ -1,10 +1,11 @@
 
 import React, { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { supabase } from '../supabase';
 
 const Header: React.FC = () => {
-  const location = useLocation();
+  const router = useRouter();
   const [logo, setLogo] = useState<string | null>(null);
 
   useEffect(() => {
@@ -15,7 +16,10 @@ const Header: React.FC = () => {
     fetchLogo();
   }, []);
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (!router) return false;
+    return router.pathname === path;
+  };
 
   const navItems = [
     { label: 'Início', path: '/' },
@@ -29,7 +33,7 @@ const Header: React.FC = () => {
   return (
     <header className="sticky top-0 z-50 w-full bg-black text-white border-b-4 border-yellow-500 shadow-lg">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3">
           {logo ? (
             <img src={logo} className="h-14 w-auto object-contain" alt="Logo" />
           ) : (
@@ -46,7 +50,7 @@ const Header: React.FC = () => {
           {navItems.map((item) => (
             <Link
               key={item.label}
-              to={item.path}
+              href={item.path}
               className={`text-[10px] lg:text-xs font-black uppercase tracking-widest hover:text-yellow-500 transition-colors ${
                 isActive(item.path) ? 'text-yellow-500 border-b-2 border-yellow-500' : ''
               }`}

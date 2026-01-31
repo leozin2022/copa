@@ -13,6 +13,15 @@ const ChatBot: React.FC = () => {
   const [context, setContext] = useState<string>('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Acesso seguro à chave de API para evitar crash no Next.js Client Side
+  const getApiKey = () => {
+    try {
+      return process.env.API_KEY || '';
+    } catch {
+      return '';
+    }
+  };
+
   const fetchTournamentData = async () => {
     try {
       const { data: teams } = await supabase.from('teams').select('*').order('points', { ascending: false });
@@ -70,7 +79,8 @@ const ChatBot: React.FC = () => {
     setIsTyping(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const apiKey = getApiKey();
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: userMsg,
